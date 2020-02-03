@@ -1,26 +1,30 @@
 import tensorflow as tf
 import numpy as np
 import camera
+import shutil
+import time
 import cv2
+import sys
 import os
 
-from more import *
 import detect_face
 
 
 class FRTB:
     def __init__(self):
         self.camera = camera.VideoCamera()
-        self.ab_file = AboutFile()
-
-        self.registered_names = []
         
+        self.registered_names = os.listdir('knowns/')
         self.location = {'top' : 0, 'bottom' : 0, 'left' : 0, 'right' : 0}
 
         # initialize registered_face
         
     def __del__(self):
         del self.camera
+
+
+    def find_name(self):
+        pass
         
     def get_frame(self, pnet, rnet, onet):
         minsize = 20
@@ -70,6 +74,9 @@ class FRTB:
                 if bb[i][0] <= 0 or bb[i][1] <= 0 or bb[i][2] >= len(frame[0]) or bb[i][3] >= len(frame):
                         print('face out')
                         continue
+                
+                # find name
+
                 cv2.rectangle(frame_with_box, (bb[i][0], bb[i][1]), (bb[i][2], bb[i][3]), (0, 255, 0), 2)
         else: 
             print("no one is here")
@@ -85,11 +92,27 @@ class FRTB:
         return img
     
     def change_register_img(self, img):
-        register_img = img[:]
+        # 파일에 사진이 없으면 resize 오류 나는 것 때문에 try/ except
+        try:
+            register_img = img[:]
+            self.registered_names =  os.listdir('knowns/')
+            # @@ add register img
+            for one_name in self.registered_names:
+                one_img = cv2.imread('knowns/' + one_name + '/1.png', cv2.IMREAD_COLOR)
         
-        # @@ add register img
-        return register_img
+                resize_one_img = cv2.resize(one_img, dsize=(200, 210), interpolation=cv2.INTER_AREA)
+                if self.registered_names.index(one_name) == 0:
+                    register_img[30:30+210, 76:76+200] = resize_one_img
+                elif self.registered_names.index(one_name) == 1:
+                    register_img[30:30+210, 305:305+200] = resize_one_img
+                elif self.registered_names.index(one_name) == 2:
+                    register_img[260:260+210, 76:76+200] = resize_one_img
+                else :
+                    register_img[260:260+210, 305:305+200] = resize_one_img
+        except:
+            pass
 
+        return register_img
 
 # MOUSE
 
@@ -97,8 +120,6 @@ def onMouse(event, x, y, flags, param):
     # global ix, iy
     ix, iy = -1, -1
 
-    knowns_path = 'knowns/'
-    register_names = os.listdir(knowns_path)
     if event == cv2.EVENT_LBUTTONDOWN:
         # ix, iy = x, y
         pass
@@ -107,27 +128,45 @@ def onMouse(event, x, y, flags, param):
     elif event == cv2.EVENT_LBUTTONUP:
         ix, iy = x, y
         
+        knowns_path = 'knowns/'
+        registered_names = os.listdir(knowns_path)
+
         #register
         if (76 < x < 500) and (483 < y < 624):
-            print("registered")
-            print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
+            # 최대 4명까지만 추가
+            if len(registered_names) == 4:
+                print("not more")
+            else:
+                # register test
+                exec(open('register.py').read())
+                # sys.exit() 
 
         # delete
         elif (76 < x < 276) and (30 < y < 240):
             print("number1")
-            print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
-
+            if len(registered_names) >= 1:    
+                shutil.rmtree(knowns_path + registered_names[0])
+            else:
+                print("nothing")
         elif (305 < x < 505) and (30 < y < 240):
             print("number2")
-            print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
-
+            if len(registered_names) >= 2:
+                shutil.rmtree(knowns_path + registered_names[1])
+            else:
+                print("nothing")
         elif (76 < x < 276) and (260 < y < 470):
             print("number3")
-            print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
-
+            if len(registered_names) >= 3:
+                shutil.rmtree(knowns_path + registered_names[2])
+            else:
+                print("nothing")
+            
         elif (305 < x < 505) and (260 < y < 470):
             print("number4")
-            print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
+            if len(registered_names) >= 4:
+                shutil.rmtree(knowns_path + registered_names[3])
+            else:
+                print("nothing")
         else:
             # others
             pass
@@ -164,7 +203,6 @@ if __name__ == '__main__':
             pnet, rnet, onet = detect_face.create_mtcnn(sess, 'src/align')
             ### camera
             
-
             while True:
 
                 frame = frtb.get_frame(pnet, rnet, onet)
