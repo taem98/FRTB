@@ -138,8 +138,8 @@ def onMouse(event, x, y, flags, param):
                 print("not more")
             else:
                 # register test
-                exec(open('register.py').read())
-                # sys.exit() 
+                # exec(open('register.py').read())
+                sys.exit() 
 
         # delete
         elif (76 < x < 276) and (30 < y < 240):
